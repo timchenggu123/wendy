@@ -23,11 +23,11 @@
 	OP(D_OBJ_TYPE) \
 	OP(D_STRUCT) \
 	OP(D_STRUCT_NAME) \
-	OP(D_STRUCT_METADATA) \
+	OP(D_STRUCT_HEADER) \
 	OP(D_STRUCT_SHARED) \
 	OP(D_STRUCT_PARAM) \
 	OP(D_STRUCT_INSTANCE) \
-	OP(D_STRUCT_INSTANCE_HEAD) \
+	OP(D_STRUCT_INSTANCE_HEADER) \
 	OP(D_STRUCT_FUNCTION) \
 	OP(D_NONERET) \
 	OP(D_NONE) \
@@ -60,6 +60,8 @@ data_value data_value_str(char *str);
 data_value data_value_num(double num);
 data_value data_value_size(int size);
 bool is_numeric(data t);
+bool is_block_header(data t);
+bool is_reference(data t);
 bool is_boolean(data t);
 
 data time_data(void);

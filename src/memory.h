@@ -27,6 +27,8 @@ struct mem_block {
 };
 
 extern data* memory;
+extern unsigned short* reference_count;
+
 extern mem_block* free_memory;
 extern stack_entry* call_stack;
 extern address* mem_reg_stack;
@@ -66,8 +68,8 @@ bool has_memory(size_t size);
 //   of the requested block.
 address pls_give_memory(size_t size, int line);
 
-// here_u_go(a, size) returns memory to Wendy
-void here_u_go(address a, size_t size);
+// here_u_go(a, size) removes a reference to the address
+void here_u_go(address a);
 
 // memory_pointer stores the address of the next available memory space
 extern address memory_pointer;
@@ -87,6 +89,7 @@ bool pop_frame(bool is_ret, address* ret);
 
 // write_memory(location, d) safely writes new data to the given location
 void write_memory(unsigned int location, data d);
+void write_memory_no_reference(unsigned int location, data d);
 
 // push_memory(t) adds the given number of data t into the memory in order
 //   and returns the address of the first one

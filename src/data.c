@@ -66,11 +66,20 @@ data_value data_value_num(double num) {
 	return r;
 }
 
+bool is_block_header(data t) {
+	return t.type == D_LIST_HEADER || t.type == D_STRUCT_HEADER ||
+		t.type == D_STRUCT_INSTANCE_HEADER;
+}
+bool is_reference(data t) {
+	return t.type == D_LIST || t.type == D_STRUCT || t.type == D_FUNCTION ||
+		t.type == D_STRUCT_INSTANCE || t.type == D_STRUCT_FUNCTION;
+}
+
 bool is_numeric(data t) {
 	return t.type == D_NUMBER || t.type == D_ADDRESS || t.type == D_LIST ||
 		t.type == D_LIST_HEADER || t.type == D_STRUCT || t.type == D_FUNCTION ||
-		t.type == D_STRUCT_METADATA || t.type == D_STRUCT_INSTANCE ||
-		t.type == D_STRUCT_INSTANCE_HEAD || t.type == D_STRUCT_FUNCTION ||
+		t.type == D_STRUCT_HEADER || t.type == D_STRUCT_INSTANCE ||
+		t.type == D_STRUCT_INSTANCE_HEADER || t.type == D_STRUCT_FUNCTION ||
 		t.type == D_CLOSURE ||
 		t.type == D_EMPTY || t.type == D_INTERNAL_POINTER;
 }
@@ -167,7 +176,7 @@ unsigned int print_data_inline(const data* t, FILE* buf) {
 	else if (t->type == D_LIST_HEADER) {
 		p += fprintf(buf, "<lhd size %d>", (int)(t->value.number));
 	}
-	else if (t->type == D_STRUCT_METADATA) {
+	else if (t->type == D_STRUCT_HEADER) {
 		p += fprintf(buf, "<meta size %d>", (int)(t->value.number));
 	}
 	else if (t->type == D_LIST) {

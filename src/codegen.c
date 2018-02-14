@@ -274,7 +274,7 @@ static void codegen_statement(void* expre) {
 		// Push Header and Name
 		write_opcode(OP_PUSH);
 		int metaHeaderLoc = size;
-		write_data(make_data(D_STRUCT_METADATA, data_value_num(1)));
+		write_data(make_data(D_STRUCT_HEADER, data_value_num(1)));
 		write_opcode(OP_PUSH);
 		write_data(make_data(D_STRUCT_NAME, data_value_str(struct_name)));
 		write_opcode(OP_PUSH);

@@ -168,7 +168,8 @@ static data native_examineMemory(data* args) {
 	printf("Memory Contents: \n");
 	for (int i = arg1_from; i < arg2_to; i++) {
 		data t = memory[i];
-		printf("[0x%08X] [%s] ", i, data_string[t.type]);
+		unsigned short references = reference_count[i];
+		printf("[0x%08X] [%d] [%s] ", i, references, data_string[t.type]);
 		if (is_numeric(t)) {
 			printf("[%f][%d][0x%X]", t.value.number, (int)t.value.number,
 				(int)t.value.number);

@@ -532,11 +532,13 @@ void vm_run(uint8_t* new_bytecode, size_t size) {
 					}
 
 					int si_size = 0;
+					// TODO We can definitely calculate or store the length of
+					//   the meta before allocating this :/
 					data* struct_instance =
 						safe_malloc(MAX_STRUCT_META_LEN * sizeof(data));
 
 					si_size = params + 1; // + 1 for the header
-					struct_instance[0] = make_data(D_STRUCT_INSTANCE_HEAD,
+					struct_instance[0] = make_data(D_STRUCT_INSTANCE_HEADER,
 							data_value_num(j));
 					int offset = params;
 					for (int i = 0; i < params; i++) {
@@ -553,7 +555,7 @@ void vm_run(uint8_t* new_bytecode, size_t size) {
 				}
 				if (top.type == D_STRUCT_FUNCTION) {
 					data_type t;
-					if (memory[memory_register_A].type == D_STRUCT_INSTANCE_HEAD) {
+					if (memory[memory_register_A].type == D_STRUCT_INSTANCE_HEADER) {
 						t = D_STRUCT_INSTANCE;
 					}
 					else {
@@ -589,7 +591,13 @@ void vm_run(uint8_t* new_bytecode, size_t size) {
 				size_t size = bytecode[i++];
 				for (address j = memory_register + size - 1;
 						j >= memory_register; j--) {
-					replace_memory(pop_arg(line), j, line);
+							// TODO this is very dirty pls fix later
+							if (j == memory_register) {
+								write_memory(j, pop_arg(line));
+							} else {
+								write_memory_no_reference(j, pop_arg(line));
+							}
+					//replace_memory(pop_arg(line), j, line);
 					if (memory[j].type == D_FUNCTION) {
 						// Write Name to Function
 						char* bind_name = last_pushed_identifier;
