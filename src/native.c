@@ -74,8 +74,7 @@ static data native_getProgramArgs(data* args) {
 		array[size++] = make_data(D_STRING,
 			data_value_str(program_arguments[i]));
 	}
-	data final = make_data(D_LIST, data_value_num(push_memory_a(array, size,
-		-1)));
+	data final = make_data(D_LIST, data_value_num(push_memory_wendy_list(array, size, -1)));
 	safe_free(array);
 	return final;
 }
@@ -117,7 +116,7 @@ static data native_log(data* args) {
 static data native_exec(data* args) {
 	char* command = native_to_string(args);
 	if (!get_settings_flag(SETTINGS_SANDBOXED)) {
-		system(command);
+		return make_data(D_NUMBER, data_value_num(system(command)));
 	}
 	return noneret_data();
 }

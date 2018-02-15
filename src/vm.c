@@ -37,7 +37,7 @@ void vm_cleanup_if_repl() {
 	safe_free(bytecode);
 }
 
-#define num_args(...)  (sizeof((char*[]){__VA_ARGS__})/sizeof(char*))
+#define num_args(...) (sizeof((char*[]){__VA_ARGS__})/sizeof(char*))
 #define first_that(condition, ...) first_that_impl(condition, num_args(__VA_ARGS__), __VA_ARGS__)
 static char* first_that_impl(bool (*condition)(char*), int count, ...) {
 	va_list ap;
@@ -308,7 +308,6 @@ void vm_run(uint8_t* new_bytecode, size_t size) {
 				break;
 			}
 			case OP_LBIND: {
-				// TODO Some Memory Issues Here No Doubt
 				char* user_index = get_string(bytecode + i, &i);
 				char* loop_index_string = get_string(bytecode + i, &i);
 				data* loop_index_token = get_value_of_id(loop_index_string, line);
@@ -339,7 +338,7 @@ void vm_run(uint8_t* new_bytecode, size_t size) {
 					res = copy_data(*loop_index_token);
 				}
 				address mem_to_mod = get_address_of_id(user_index, line);
-				replace_memory(res, mem_to_mod, -1);
+				write_memory(mem_to_mod, res, -1);
 				destroy_data(&condition);
 				break;
 			}
@@ -374,7 +373,6 @@ void vm_run(uint8_t* new_bytecode, size_t size) {
 				break;
 			}
 			case OP_REQ: {
-				// Memory Request Instruction
 				memory_register = pls_give_memory(bytecode[i++], line);
 				break;
 			}
@@ -395,7 +393,7 @@ void vm_run(uint8_t* new_bytecode, size_t size) {
 					address fn_adr = value.value.number;
 					strcpy(memory[fn_adr + 2].value.string, bind_name);
 				}
-				replace_memory(value, memory_register, line);
+				write_memory(memory_register, value, line);
 				break;
 			}
 			case OP_MKPTR: {
@@ -591,6 +589,7 @@ void vm_run(uint8_t* new_bytecode, size_t size) {
 				size_t size = bytecode[i++];
 				for (address j = memory_register + size - 1;
 						j >= memory_register; j--) {
+<<<<<<< HEAD
 							// TODO this is very dirty pls fix later
 							if (j == memory_register) {
 								write_memory(j, pop_arg(line));
@@ -598,6 +597,9 @@ void vm_run(uint8_t* new_bytecode, size_t size) {
 								write_memory_no_reference(j, pop_arg(line));
 							}
 					//replace_memory(pop_arg(line), j, line);
+=======
+					write_memory(j, pop_arg(line), line);
+>>>>>>> master
 					if (memory[j].type == D_FUNCTION) {
 						// Write Name to Function
 						char* bind_name = last_pushed_identifier;
@@ -637,11 +639,11 @@ void vm_run(uint8_t* new_bytecode, size_t size) {
 					size_t len = strlen(buffer);
 					// remove last newline
 					buffer[len - 1] = 0;
-					write_memory(memory_register, make_data(D_STRING, data_value_str(buffer)));
+					write_memory(memory_register, make_data(D_STRING, data_value_str(buffer)), line);
 				}
 				else {
 					// conversion successful
-					write_memory(memory_register, make_data(D_NUMBER, data_value_num(d)));
+					write_memory(memory_register, make_data(D_NUMBER, data_value_num(d)), line);
 				}
 				break;
 			}
@@ -667,13 +669,18 @@ static data eval_binop(operator op, data a, data b) {
 			error_runtime(line, VM_TYPE_ERROR, operator_string[op]);
 			return none_data();
 		}
-		data list_header;
-		if (a.type == D_LIST) {
-			list_header = memory[(int)a.value.number];
+
+		int list_size;
+		if (a.type == D_STRING) {
+			list_size = strlen(a.value.string);
 		}
-		int list_size = a.type == D_STRING ? strlen(a.value.string) :
-											 list_header.value.number;
-		address id_address = a.value.number;
+		else if (a.type == D_RANGE) {
+			list_size = abs(range_end(a) - range_start(a));
+		}
+		else {
+			list_size = memory[(int)a.value.number].value.number;
+		}
+		
 		if (b.type != D_NUMBER && b.type != D_RANGE) {
 			error_runtime(line, VM_INVALID_LIST_SUBSCRIPT);
 			return none_data();
@@ -705,7 +712,8 @@ static data eval_binop(operator op, data a, data b) {
 			}
 			// Add 1 to offset because of the header.
 			int offset = floor(b.value.number) + 1;
-			data* c = get_value_of_address(id_address + offset, line);
+			address list_address = a.value.number;
+			data* c = get_value_of_address(list_address + offset, line);
 			return copy_data(*c);
 		}
 		else {
@@ -725,8 +733,16 @@ static data eval_binop(operator op, data a, data b) {
 			}
 			else if (a.type == D_RANGE) {
 				// Range of a Range...
-				// TODO
-				return none_data();
+				int a_start = range_start(a);
+				int a_end = range_end(a); UNUSED(a_end);
+				int b_start = range_start(b);
+				int b_end = range_end(b);
+				// Very relaxed about ranges, don't really care if it's out of
+				//   bounds for now.
+				// if (a_start + b_start > a_end || a_start + b_end < a_start) {
+				// 	error_runtime(line, VM_RANGE_REF_OUT_OF_RANGE);
+				// }
+				return range_data(a_start + b_start, a_start + b_end);
 			}
 
 			address array_start = (int)(a.value.number);
@@ -736,7 +752,7 @@ static data eval_binop(operator op, data a, data b) {
 				start < end ? i++ : i--) {
 				new_a[n++] = copy_data(memory[array_start + i + 1]);
 			}
-			address new_aa = push_memory_a(new_a, subarray_size, line);
+			address new_aa = push_memory_wendy_list(new_a, subarray_size, line);
 			safe_free(new_a);
 			data c = make_data(D_LIST, data_value_num(new_aa));
 			return c;
@@ -943,7 +959,7 @@ static data eval_binop(operator op, data a, data b) {
 					for (int i = 0; i < size_b; i++) {
 						new_list[n++] = copy_data(memory[start_b + i + 1]);
 					}
-					address new_adr = push_memory_a(new_list, new_size, line);
+					address new_adr = push_memory_wendy_list(new_list, new_size, line);
 					safe_free(new_list);
 					return make_data(D_LIST, data_value_num(new_adr));
 				}
@@ -963,7 +979,7 @@ static data eval_binop(operator op, data a, data b) {
 					new_list[n++] = copy_data(memory[start_a + i + 1]);
 				}
 				new_list[n++] = copy_data(b);
-				address new_adr = push_memory_a(new_list, size_a + 1, line);
+				address new_adr = push_memory_wendy_list(new_list, size_a + 1, line);
 				safe_free(new_list);
 				return make_data(D_LIST, data_value_num(new_adr));
 			}
@@ -979,7 +995,7 @@ static data eval_binop(operator op, data a, data b) {
 				for (int i = 0; i < new_size; i++) {
 					new_list[n++] = copy_data(memory[(start_a + (i % size_a)) + 1]);
 				}
-				address new_adr = push_memory_a(new_list, new_size, line);
+				address new_adr = push_memory_wendy_list(new_list, new_size, line);
 				safe_free(new_list);
 				return make_data(D_LIST, data_value_num(new_adr));
 			}
@@ -999,7 +1015,7 @@ static data eval_binop(operator op, data a, data b) {
 				for (int i = 0; i < size_b; i++) {
 					new_list[n++] = copy_data(memory[start_b + i + 1]);
 				}
-				address new_adr = push_memory_a(new_list, size_b + 1, line);
+				address new_adr = push_memory_wendy_list(new_list, size_b + 1, line);
 				safe_free(new_list);
 				return make_data(D_LIST, data_value_num(new_adr));
 			}
@@ -1015,7 +1031,7 @@ static data eval_binop(operator op, data a, data b) {
 				for (int i = 0; i < new_size; i++) {
 					new_list[n++] = copy_data(memory[(start_b + (i % size_b)) + 1]);
 				}
-				address new_adr = push_memory_a(new_list, new_size, line);
+				address new_adr = push_memory_wendy_list(new_list, new_size, line);
 				safe_free(new_list);
 				return make_data(D_LIST, data_value_num(new_adr));
 			}
@@ -1199,7 +1215,7 @@ static data eval_uniop(operator op, data a) {
 			for (int i = 0; i < list_size; i++) {
 				new_a[n++] = copy_data(memory[array_start + i + 1]);
 			}
-			address new_l_loc = push_memory_a(new_a, list_size, line);
+			address new_l_loc = push_memory_wendy_list(new_a, list_size, line);
 			safe_free(new_a);
 			return make_data(D_LIST, data_value_num(new_l_loc));
 		}
